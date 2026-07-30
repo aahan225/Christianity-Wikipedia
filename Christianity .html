@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumen · A Devotional Encyclopedia of Christianity</title>
+<meta name="description" content="An offline, devotional encyclopedia of Christian faith, history, and practice.">
+<style>
+/* ============================================================
+   LUMEN — token system
+   A late-vespers palette: deep night blues lit by candle-gold,
+   in the manner of an illuminated psalter rather than a "website".
+   ============================================================ */
+:root{
+  --void:      #0A0E1A;
+  --night:     #10162A;
+  --night-2:   #161d36;
+  --panel:     #131a2f;
+  --hairline:  rgba(201,164,56,0.18);
+  --gold:      #c9a438;
+  --gold-soft: #e8cd7a;
+  --gold-dim:  #8a7128;
+  --ember:     #8a3a3a;
+  --ink:       #e9e3cf;
+  --ink-dim:   #a9b0c9;
+  --ink-faint: #6b7290;
+  --parchment: #f3ecd8;
+  --parch-ink: #2a2410;
+
+  --serif-display: "Iowan Old Style","Palatino Linotype","URW Palladio","Book Antiqua",Georgia,serif;
+  --serif-body: "Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;
+  --sans-ui: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+
+  --scale: 1;
+  --radius: 3px;
+  --dur: 420ms;
+}
+
+html[data-theme="dawn"]{
+  --void:      #f6f0dc;
+  --night:     #f3ecd8;
+  --night-2:   #ece2c4;
+  --panel:     #fbf7ec;
+  --hairline:  rgba(122,46,46,0.16);
+  --gold:      #9c7a1e;
+  --gold-soft: #7a5e13;
+  --gold-dim:  #b89644;
+  --ember:     #7a2e2e;
+  --ink:       #2a2410;
+  --ink-dim:   #4c4426;
+  --ink-faint: #7d7350;
+}
+
+*{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+body{
+  margin:0;
+  background:var(--void);
+  color:var(--ink);
+  font-family:var(--serif-body);
+  font-size:calc(17px * var(--scale));
+  line-height:1.7;
+  transition:background var(--dur) ease, color var(--dur) ease;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  /* ambient candle-glow vignette, the one signature atmosphere effect */
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 18% 8%, rgba(201,164,56,0.10), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 85% 90%, rgba(138,58,58,0.08), transparent 60%);
+  animation: flicker 9s ease-in-out infinite;
+}
+html[data-theme="dawn"] body::before{ opacity:0.5; }
+@keyframes flicker{
+  0%,100%{ opacity:1; }
+  35%{ opacity:0.85; }
+  55%{ opacity:0.96; }
+  70%{ opacity:0.8; }
+}
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; scroll-behavior:auto !important; }
+}
+
+a{ color:var(--gold-soft); }
+h1,h2,h3,h4{ font-family:var(--serif-display); font-weight:600; color:var(--ink); letter-spacing:0.01em; }
+::selection{ background:var(--gold); color:var(--void); }
+
+/* ---------- layout shell ---------- */
+.shell{ display:flex; min-height:100vh; position:relative; z-index:1; }
+
+/* ---------- top progress ---------- */
+#progressbar{
+  position:fixed; top:0; left:0; height:2px; width:0%;
+  background:linear-gradient(90deg,var(--ember),var(--gold),var(--gold-soft));
+  z-index:500; transition:width 80ms linear;
+}
+
+/* ---------- sidebar ---------- */
+.sidebar{
+  width:280px; flex-shrink:0;
+  background:var(--night);
+  border-right:1px solid var(--hairline);
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+  padding:28px 0 40px;
+  z-index:100;
+}
+.sidebar::-webkit-scrollbar{ width:6px; }
+.sidebar::-webkit-scrollbar-thumb{ background:var(--hairline); border-radius:4px; }
+
+.brand{
+  padding:0 22px 20px; border-bottom:1px solid var(--hairline); margin-bottom:14px;
+}
+.brand .flame{
+  display:inline-block; width:10px; height:14px; margin-right:8px;
+  background:linear-gradient(180deg,var(--gold-soft),var(--ember));
+  border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+  filter:blur(0.2px);
+  animation:flamewag 2.4s ease-in-out infinite;
+  transform-origin:bottom center;
+}
+@keyframes flamewag{ 0%,100%{transform:rotate(-3deg) scaleY(1);} 50%{transform:rotate(3deg) scaleY(1.06);} }
+.brand h1{ font-size:1.5rem; margin:0 0 2px; display:flex; align-items:center; }
+.brand p{ margin:0; font-family:var(--sans-ui); font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint); }
+
+.searchwrap{ padding:14px 18px; border-bottom:1px solid var(--hairline); margin-bottom:6px; }
+#search{
+  width:100%; padding:9px 12px; border-radius:var(--radius);
+  border:1px solid var(--hairline); background:var(--panel); color:var(--ink);
+  font-family:var(--sans-ui); font-size:0.85rem; outline:none;
+}
+#search:focus{ border-color:var(--gold-dim); }
+.searchhint{ font-family:var(--sans-ui); font-size:0.68rem; color:var(--ink-faint); margin-top:6px; }
+#searchresults{
+  margin:6px 18px 0; max-height:260px; overflow-y:auto; display:none;
+  background:var(--panel); border:1px solid var(--hairline); border-radius:var(--radius);
+}
+#searchresults div{ padding:9px 12px; font-family:var(--sans-ui); font-size:0.82rem; cursor:pointer; border-bottom:1px solid var(--hairline); }
+#searchresults div:last-child{ border-bottom:none; }
+#searchresults div:hover{ background:var(--night-2); }
+#searchresults .snip{ color:var(--ink-faint); font-size:0.74rem; display:block; margin-top:2px; }
+
+nav.toc{ padding:6px 10px; }
+nav.toc a{
+  display:flex; align-items:center; gap:9px;
+  padding:8px 12px; margin:1px 0; border-radius:var(--radius);
+  text-decoration:none; color:var(--ink-dim);
+  font-family:var(--sans-ui); font-size:0.86rem;
+  border-left:2px solid transparent;
+  transition:background 150ms, color 150ms, border-color 150ms;
+}
+nav.toc a:hover{ background:var(--panel); color:var(--ink); }
+nav.toc a.active{ color:var(--gold-soft); border-left-color:var(--gold); background:var(--panel); }
+nav.toc .num{ font-variant-numeric:tabular-nums; color:var(--ink-faint); font-size:0.72rem; width:16px; }
+nav.toc .star{ margin-left:auto; opacity:0.35; font-size:0.8rem; }
+nav.toc a.bookmarked .star{ opacity:1; color:var(--gold); }
+
+.sidebar-tools{
+  display:flex; gap:6px; padding:14px 18px 4px; border-top:1px solid var(--hairline); margin-top:10px; flex-wrap:wrap;
+}
+.tbtn{
+  background:var(--panel); border:1px solid var(--hairline); color:var(--ink-dim);
+  font-family:var(--sans-ui); font-size:0.72rem; padding:6px 10px; border-radius:var(--radius);
+  cursor:pointer; transition:all 150ms;
+}
+.tbtn:hover{ color:var(--gold-soft); border-color:var(--gold-dim); }
+.tbtn.active{ color:var(--void); background:var(--gold-soft); border-color:var(--gold-soft); }
+
+/* ---------- main ---------- */
+main{ flex:1; min-width:0; }
+.hero{
+  padding:90px 8vw 60px; text-align:center; border-bottom:1px solid var(--hairline);
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,164,56,0.09), transparent 70%);
+}
+.hero .eyebrow{ font-family:var(--sans-ui); letter-spacing:0.22em; text-transform:uppercase; font-size:0.72rem; color:var(--gold-dim); margin-bottom:18px; }
+.hero h1{ font-size:clamp(2.4rem,5vw,4rem); margin:0 0 22px; line-height:1.08; }
+.hero h1 em{ font-style:italic; color:var(--gold-soft); }
+.hero p.lede{ max-width:640px; margin:0 auto 30px; font-size:1.15rem; color:var(--ink-dim); }
+.hero .verse{
+  display:inline-block; font-style:italic; color:var(--gold-soft); font-size:1.05rem;
+  border-top:1px solid var(--hairline); border-bottom:1px solid var(--hairline); padding:14px 0;
+}
+.hero .verse cite{ display:block; font-style:normal; font-family:var(--sans-ui); font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-faint); margin-top:8px; }
+
+.container{ max-width:840px; margin:0 auto; padding:0 6vw; }
+
+section.entry{ padding:70px 0; border-bottom:1px solid var(--hairline); scroll-margin-top:20px; }
+section.entry:last-of-type{ border-bottom:none; }
+.entry-head{ display:flex; align-items:baseline; justify-content:space-between; gap:20px; margin-bottom:6px; }
+.entry-head h2{ font-size:2.1rem; margin:0; }
+.entry-tag{ font-family:var(--sans-ui); font-size:0.7rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold-dim); margin-bottom:10px; }
+.entry-actions{ display:flex; gap:8px; flex-shrink:0; }
+.iconbtn{
+  background:none; border:1px solid var(--hairline); color:var(--ink-faint); width:34px; height:34px;
+  border-radius:50%; cursor:pointer; font-size:0.95rem; display:flex; align-items:center; justify-content:center;
+  transition:all 150ms;
+}
+.iconbtn:hover{ color:var(--gold-soft); border-color:var(--gold-dim); }
+.iconbtn.on{ color:var(--gold); border-color:var(--gold); }
+
+.dropcap p.opening::first-letter{
+  font-family:var(--serif-display); font-size:3.4em; float:left; line-height:0.82; padding:0.05em 0.08em 0 0;
+  color:var(--gold); font-weight:600;
+}
+
+.entry h3{ font-size:1.25rem; margin:34px 0 10px; color:var(--gold-soft); }
+.entry p{ margin:0 0 16px; color:var(--ink); }
+.entry ul, .entry ol{ padding-left:1.3em; color:var(--ink); }
+.entry li{ margin-bottom:8px; }
+
+blockquote.q{
+  margin:26px 0; padding:6px 0 6px 22px; border-left:2px solid var(--gold);
+  font-style:italic; color:var(--gold-soft); font-size:1.08rem;
+}
+blockquote.q cite{ display:block; font-style:normal; font-family:var(--sans-ui); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint); margin-top:8px; }
+
+.divider{ text-align:center; color:var(--gold-dim); margin:20px 0; letter-spacing:0.4em; font-size:0.9rem; }
+
+/* timeline */
+.timeline{ position:relative; margin:24px 0 10px; padding-left:26px; border-left:1px solid var(--hairline); }
+.tl-item{ position:relative; margin-bottom:26px; }
+.tl-item::before{ content:""; position:absolute; left:-31px; top:5px; width:9px; height:9px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 3px var(--void); }
+.tl-date{ font-family:var(--sans-ui); font-size:0.74rem; letter-spacing:0.08em; color:var(--gold-soft); text-transform:uppercase; }
+.tl-item h4{ margin:3px 0 4px; font-size:1.05rem; }
+.tl-item p{ margin:0; font-size:0.95rem; color:var(--ink-dim); }
+
+/* tables */
+table.cmp{ width:100%; border-collapse:collapse; margin:22px 0; font-size:0.92rem; }
+table.cmp th, table.cmp td{ text-align:left; padding:10px 12px; border-bottom:1px solid var(--hairline); vertical-align:top; }
+table.cmp th{ font-family:var(--sans-ui); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold-dim); }
+table.cmp tr:hover td{ background:rgba(201,164,56,0.04); }
+
+/* symbol grid */
+.symgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:16px; margin:24px 0; }
+.symcard{ background:var(--panel); border:1px solid var(--hairline); border-radius:var(--radius); padding:18px 14px; text-align:center; }
+.symcard .glyph{ font-size:2rem; margin-bottom:10px; color:var(--gold-soft); }
+.symcard h4{ margin:0 0 6px; font-size:0.95rem; }
+.symcard p{ margin:0; font-size:0.8rem; color:var(--ink-dim); }
+
+/* faq / glossary */
+details.faq{ border-bottom:1px solid var(--hairline); padding:14px 0; }
+details.faq summary{ cursor:pointer; font-family:var(--serif-display); font-size:1.05rem; color:var(--ink); list-style:none; display:flex; justify-content:space-between; align-items:center; }
+details.faq summary::-webkit-details-marker{ display:none; }
+details.faq summary::after{ content:"+"; color:var(--gold); font-size:1.3rem; margin-left:10px; }
+details.faq[open] summary::after{ content:"–"; }
+details.faq p{ margin-top:10px; color:var(--ink-dim); }
+
+dl.gloss dt{ font-family:var(--serif-display); color:var(--gold-soft); font-size:1.05rem; margin-top:16px; }
+dl.gloss dd{ margin:4px 0 0; color:var(--ink-dim); }
+
+/* notes */
+.notesbox{ margin-top:30px; padding-top:20px; border-top:1px dashed var(--hairline); }
+.notesbox label{ display:block; font-family:var(--sans-ui); font-size:0.72rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:8px; }
+.notesbox textarea{
+  width:100%; min-height:80px; resize:vertical; background:var(--panel); border:1px solid var(--hairline);
+  border-radius:var(--radius); color:var(--ink); font-family:var(--serif-body); font-size:0.95rem; padding:12px; outline:none;
+}
+.notesbox textarea:focus{ border-color:var(--gold-dim); }
+.savedflag{ font-family:var(--sans-ui); font-size:0.68rem; color:var(--gold-dim); opacity:0; transition:opacity 300ms; }
+.savedflag.show{ opacity:1; }
+
+footer{ text-align:center; padding:60px 8vw 80px; color:var(--ink-faint); font-family:var(--sans-ui); font-size:0.78rem; }
+footer .verse-final{ font-family:var(--serif-display); font-style:italic; color:var(--gold-soft); font-size:1.2rem; margin-bottom:14px; }
+
+/* floating controls */
+.floaters{ position:fixed; right:22px; bottom:22px; display:flex; flex-direction:column; gap:10px; z-index:400; }
+.floaters button{
+  width:44px; height:44px; border-radius:50%; border:1px solid var(--hairline); background:var(--panel);
+  color:var(--gold-soft); cursor:pointer; font-size:1.1rem; box-shadow:0 4px 18px rgba(0,0,0,0.35);
+  opacity:0; transform:translateY(8px); pointer-events:none; transition:all 250ms;
+}
+.floaters button.show{ opacity:1; transform:translateY(0); pointer-events:auto; }
+
+/* mobile */
+.menubtn{ display:none; }
+@media (max-width: 900px){
+  .sidebar{ position:fixed; left:-300px; top:0; width:280px; transition:left 260ms ease; box-shadow:20px 0 40px rgba(0,0,0,0.4); }
+  .sidebar.open{ left:0; }
+  .menubtn{
+    display:flex; position:fixed; top:14px; left:14px; z-index:200; width:42px; height:42px; border-radius:50%;
+    background:var(--panel); border:1px solid var(--hairline); color:var(--gold-soft); align-items:center; justify-content:center; cursor:pointer;
+  }
+  .hero{ padding:100px 6vw 50px; }
+  .container{ padding:0 6vw; }
+}
+
+@media print{
+  .sidebar, .floaters, .menubtn, #progressbar, .entry-actions, .notesbox{ display:none !important; }
+  body{ background:#fff; color:#000; }
+  main{ margin:0; }
+  section.entry{ break-inside:avoid; }
+}
+</style>
+</head>
+<body>
+
+<div id="progressbar"></div>
+<button class="menubtn" id="menubtn" aria-label="Open navigation">☰</button>
+
+<div class="shell">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <h1><span class="flame"></span>Lumen</h1>
+      <p>A Devotional Encyclopedia</p>
+    </div>
+
+    <div class="searchwrap">
+      <input type="text" id="search" placeholder="Search the encyclopedia… ( / )" autocomplete="off">
+      <div class="searchhint">Try “Trinity”, “Easter”, “Aquinas”, “baptism”…</div>
+      <div id="searchresults"></div>
+    </div>
+
+    <nav class="toc" id="toc">
+      <a href="#home" data-id="home"><span class="num">·</span>Home <span class="star">★</span></a>
+      <a href="#history" data-id="history"><span class="num">01</span>History <span class="star">★</span></a>
+      <a href="#jesus" data-id="jesus"><span class="num">02</span>Jesus Christ <span class="star">★</span></a>
+      <a href="#bible" data-id="bible"><span class="num">03</span>The Bible <span class="star">★</span></a>
+      <a href="#god" data-id="god"><span class="num">04</span>God &amp; the Trinity <span class="star">★</span></a>
+      <a href="#holyspirit" data-id="holyspirit"><span class="num">05</span>The Holy Spirit <span class="star">★</span></a>
+      <a href="#salvation" data-id="salvation"><span class="num">06</span>Salvation <span class="star">★</span></a>
+      <a href="#denominations" data-id="denominations"><span class="num">07</span>Denominations <span class="star">★</span></a>
+      <a href="#sacraments" data-id="sacraments"><span class="num">08</span>Sacraments <span class="star">★</span></a>
+      <a href="#festivals" data-id="festivals"><span class="num">09</span>Feasts &amp; Calendar <span class="star">★</span></a>
+      <a href="#symbols" data-id="symbols"><span class="num">10</span>Symbols <span class="star">★</span></a>
+      <a href="#prayer" data-id="prayer"><span class="num">11</span>Prayer &amp; Quotes <span class="star">★</span></a>
+      <a href="#glossary" data-id="glossary"><span class="num">12</span>Glossary <span class="star">★</span></a>
+      <a href="#faq" data-id="faq"><span class="num">13</span>Questions <span class="star">★</span></a>
+    </nav>
+
+    <div class="sidebar-tools">
+      <button class="tbtn" id="themebtn" title="Toggle Dusk/Dawn">☾ Dusk</button>
+      <button class="tbtn" id="fontminus" title="Smaller text">A−</button>
+      <button class="tbtn" id="fontplus" title="Larger text">A+</button>
+      <button class="tbtn" id="showbookmarks" title="Show only bookmarks">★ Saved</button>
+    </div>
+  </aside>
+
+  <main id="main">
+
+    <section class="hero" id="home">
+      <div class="eyebrow">Enter quietly</div>
+      <h1>Come, and <em>be still</em>.<br>An encyclopedia of the Christian faith.</h1>
+      <p class="lede">Lumen gathers the history, the theology, and the quiet practices of Christianity into one place — written to be read slowly, like scripture at evening, not scrolled through like a feed.</p>
+      <p class="verse">“Be still, and know that I am God.”<cite>Psalm 46:10</cite></p>
+    </section>
+
+    <div class="container">
+
+      <!-- ============ HISTORY ============ -->
+      <section class="entry dropcap" id="history">
+        <div class="entry-tag">Chapter One</div>
+        <div class="entry-head">
+          <h2>A Brief History of the Church</h2>
+          <div class="entry-actions">
+            <button class="iconbtn bookmarkbtn" data-id="history" title="Bookmark">★</button>
+          </div>
+        </div>
+        <p class="opening">Christianity begins, in its own telling, not with an institution but with a person: a Jewish teacher named Jesus of Nazareth, executed under Roman authority around AD 30–33, whose followers came to proclaim that God had raised him from the dead. What started as a small movement within Second Temple Judaism became, within four centuries, the dominant religion of the Roman Empire, and within two millennia, the largest religious tradition on earth, professed today by roughly 2.3 to 2.4 billion people across every inhabited continent.</p>
+        <p>The story is not a single, tidy line. It is a river that has split many times — over language, over authority, over the fine grain of doctrine — and each branch understands its own history somewhat differently. What follows traces the path most historians of religion would recognize, noting clearly where traditions diverge.</p>
+
+        <h3>Roots in Israel</h3>
+        <p>Christianity did not appear from nowhere. It grew out of the religious world of ancient Israel — the covenant with Abraham, the exodus from Egypt, the law given at Sinai, the kingship of David, and the words of the prophets who spoke of a coming deliverer. Early Christians read their own story as the continuation and fulfillment of this older story, which is why the Hebrew Scriptures were kept by the Church as its "Old Testament" rather than discarded.</p>
+
+        <h3>The Apostolic Age</h3>
+        <p>After Jesus's death, his followers — a small circle of Galilean disciples and, soon after, converts from across the Mediterranean — began to proclaim him as the risen Messiah ("Christ" is simply the Greek word for this title). The apostle Paul, a former persecutor of the movement, became its most energetic missionary, founding congregations in Asia Minor, Greece, and eventually reaching Rome. By the end of the first century, Christian communities existed in most major cities of the Roman East and in Rome itself, meeting in private homes and facing periodic, often local, suspicion from Roman authorities who found their refusal to honor the state gods unsettling.</p>
+
+        <h3>Persecution and the Age of Constantine</h3>
+        <p>For roughly 250 years, Christians in the Roman Empire lived under an uncertain legal status, subject to intermittent, sometimes brutal, persecution — under Nero, Decius, and most severely under Diocletian in the early 300s. This changed abruptly with the Emperor Constantine, who attributed a military victory in 312 to the Christian God and issued the Edict of Milan in 313, granting toleration. By the century's end, under Theodosius I, Christianity had become the empire's official religion.</p>
+
+        <h3>Councils and Creeds</h3>
+        <p>As the Church grew, it had to define what it actually believed, especially about the relationship between Jesus and God. The Council of Nicaea (325) affirmed that the Son is "of one substance" with the Father, against a rival view (Arianism) that Jesus was a lesser, created being. The Council of Chalcedon (451) further defined Christ as fully God and fully man in one person — a formula still held by Catholic, Orthodox, and most Protestant Christians today, though the Oriental Orthodox churches (Coptic, Armenian, Syriac, Ethiopian) did not accept Chalcedon's precise wording and developed their own theological path.</p>
+
+        <h3>East and West Divide</h3>
+        <p>Political, linguistic, and theological differences between the Greek-speaking East (centered on Constantinople) and the Latin-speaking West (centered on Rome) widened for centuries, culminating in the Great Schism of 1054, when the Pope and the Ecumenical Patriarch excommunicated one another. The wound was deepened by the sack of Constantinople by Western crusaders in 1204. To this day, the Eastern Orthodox and Roman Catholic churches remain formally divided, though both trace an unbroken line back to the apostolic Church.</p>
+
+        <h3>Medieval Christendom</h3>
+        <p>In Western Europe, the Church became the great unifying institution after the fall of Rome — preserving learning in monasteries, founding the first universities, and shaping law, art, and politics. Monastic movements (Benedictine, Cistercian, later Franciscan and Dominican) modeled lives devoted to prayer, labor, and study. The Crusades (1095–1291), launched to recover Jerusalem and the Holy Land, remain one of the most morally complicated chapters of this era — defended by contemporaries as holy pilgrimage-warfare, and criticized by many historians and theologians since, including within the Church itself, for the violence committed, including against Jews, Muslims, and Eastern Christians alike.</p>
+
+        <h3>Reformation and Division</h3>
+        <p>In 1517, an Augustinian monk named Martin Luther published 95 theses criticizing the sale of indulgences, igniting a movement that questioned papal authority, the role of good works in salvation, and the nature of the sacraments. Within decades, Reformed churches following John Calvin, Lutheran churches in Germany and Scandinavia, and — for largely political reasons — the Church of England under Henry VIII, had broken from Rome. The Catholic Church responded with its own Counter-Reformation, clarifying doctrine at the Council of Trent (1545–1563) and founding new religious orders such as the Jesuits.</p>
+
+        <h3>Expansion and the Modern Era</h3>
+        <p>European exploration from the 15th century carried Christianity to the Americas, Africa, and Asia, often entangled — a fact acknowledged by many churches today — with colonialism and coercion, alongside genuine missionary conviction and, in places, courageous advocacy for indigenous peoples by figures such as Bartolomé de las Casas. The 18th and 19th centuries saw revival movements (the Evangelical awakenings, Methodism) and a vast expansion of missionary activity. The 20th century brought both catastrophic tests — Christians participated in, and others resisted, the totalitarian violence of the era — and renewal, including the Second Vatican Council (1962–1965), which reoriented Catholic worship and relations with other faiths, and the explosive growth of Pentecostalism, now one of the fastest-growing Christian movements worldwide, especially across the Global South.</p>
+
+        <div class="divider">✦ ✦ ✦</div>
+        <h3>Timeline at a Glance</h3>
+        <div class="timeline">
+          <div class="tl-item"><span class="tl-date">c. 4 BC – AD 30</span><h4>Life of Jesus of Nazareth</h4><p>Birth, ministry, crucifixion, and — as Christians proclaim — resurrection, in Roman Judea.</p></div>
+          <div class="tl-item"><span class="tl-date">c. 33–100</span><h4>Apostolic Age</h4><p>Paul's missionary journeys; the spread of house-churches across the Mediterranean.</p></div>
+          <div class="tl-item"><span class="tl-date">64–311</span><h4>Roman Persecutions</h4><p>Intermittent, sometimes empire-wide, suppression of Christian communities.</p></div>
+          <div class="tl-item"><span class="tl-date">313</span><h4>Edict of Milan</h4><p>Constantine grants legal toleration to Christianity.</p></div>
+          <div class="tl-item"><span class="tl-date">325 &amp; 451</span><h4>Councils of Nicaea &amp; Chalcedon</h4><p>Core doctrines of the Trinity and the person of Christ are formally defined.</p></div>
+          <div class="tl-item"><span class="tl-date">1054</span><h4>Great Schism</h4><p>Formal division between the Roman Catholic and Eastern Orthodox churches.</p></div>
+          <div class="tl-item"><span class="tl-date">1095–1291</span><h4>The Crusades</h4><p>A series of religiously framed military campaigns for the Holy Land.</p></div>
+          <div class="tl-item"><span class="tl-date">1517</span><h4>Luther's 95 Theses</h4><p>The beginning of the Protestant Reformation.</p></div>
+          <div class="tl-item"><span class="tl-date">1545–1563</span><h4>Council of Trent</h4><p>The Catholic Counter-Reformation clarifies doctrine and practice.</p></div>
+          <div class="tl-item"><span class="tl-date">1962–1965</span><h4>Second Vatican Council</h4><p>Major reforms in Catholic worship and its posture toward the modern world.</p></div>
+          <div class="tl-item"><span class="tl-date">20th–21st c.</span><h4>Global South Growth</h4><p>The demographic center of Christianity shifts toward Africa, Latin America, and Asia.</p></div>
+        </div>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="history" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ JESUS ============ -->
+      <section class="entry dropcap" id="jesus">
+        <div class="entry-tag">Chapter Two</div>
+        <div class="entry-head">
+          <h2>Jesus Christ</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="jesus" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">Every claim Christianity makes finally rests on one man. To Christians, Jesus of Nazareth is not merely a moral teacher or a prophet but the eternal Son of God who took on human flesh, lived among his people, taught with unmatched authority, died a criminal's death, and — this is the claim on which the whole faith stands or falls — rose bodily from the grave.</p>
+
+        <h3>Birth and Early Life</h3>
+        <p>According to the Gospels of Matthew and Luke, Jesus was born in Bethlehem to Mary, a young Jewish woman betrothed to Joseph, a carpenter descended from the royal line of David. Both Gospels describe his conception as miraculous — by the Holy Spirit, without a human father — which the Church calls the Virgin Birth. He grew up in Nazareth, a small town in Galilee, and the Gospels record almost nothing of his life between infancy and the start of his public ministry around age thirty, save for one story of him teaching in the Jerusalem Temple at twelve.</p>
+
+        <h3>Ministry and Teaching</h3>
+        <p>Jesus's public ministry lasted roughly one to three years. He gathered twelve disciples, traveled through Galilee and Judea, and taught largely through short, vivid stories called parables — the Prodigal Son, the Good Samaritan, the Sower — which used everyday images to describe the "Kingdom of God." His ethical teaching, gathered above all in the Sermon on the Mount, called for a radical inward righteousness: love of enemies, purity of heart, humility, and mercy. The Gospels also record him performing miracles — healing the sick, calming a storm, feeding thousands from a few loaves of bread, and raising the dead — presented as signs of God's kingdom breaking into the world.</p>
+
+        <h3>Death and Resurrection</h3>
+        <p>In Jerusalem, during the Jewish festival of Passover, Jesus was arrested after a private meal with his disciples (the Last Supper), tried before Jewish religious authorities and the Roman governor Pontius Pilate, and crucified — a Roman method of execution reserved for slaves and rebels. His followers report that on the third day his tomb was found empty and that he appeared to them alive over the following weeks, before ascending into heaven. This resurrection is, in the words of the apostle Paul, the hinge of the entire faith: "if Christ has not been raised, your faith is futile."</p>
+        <blockquote class="q">“I am the resurrection and the life. Whoever believes in me, though he die, yet shall he live.”<cite>John 11:25</cite></blockquote>
+
+        <h3>Who Christians Believe Him to Be</h3>
+        <p>Mainstream Christian tradition holds Jesus to be truly God and truly man, one person in two natures, in line with the Council of Chalcedon (451). Titles applied to him in the New Testament and later tradition include Christ (Anointed One), Son of God, Son of Man, Lord, Word (Logos), Lamb of God, and Emmanuel ("God with us"). Some smaller groups across history and today — for instance certain Unitarian or Jehovah's Witness theologies — understand Jesus differently, typically as a created or subordinate being rather than co-equal with the Father; these views stand outside the historic mainstream consensus of Catholic, Orthodox, and Protestant Christianity.</p>
+
+        <h3>Historical Evidence</h3>
+        <p>Beyond the New Testament, Jesus is mentioned by the Jewish historian Josephus and the Roman writers Tacitus and Pliny the Younger, all writing within roughly a century of his death — evidence historians generally take as sufficient to establish that a Jewish teacher named Jesus was executed under Pilate and that a movement quickly formed around him. The resurrection itself, being a claimed miracle, lies outside what historical method alone can verify or falsify; it is received by Christians as a matter of faith and testimony rather than as an event demonstrable by ordinary historical proof.</p>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="jesus" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ BIBLE ============ -->
+      <section class="entry dropcap" id="bible">
+        <div class="entry-tag">Chapter Three</div>
+        <div class="entry-head">
+          <h2>The Bible</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="bible" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">The Bible is not one book but a library — 66 books in most Protestant editions, 73 in Catholic editions, and a still broader collection in some Orthodox traditions — written over roughly a thousand years, in Hebrew, Aramaic, and Greek, by dozens of authors, and gathered by the Church into a single canon of Scripture.</p>
+
+        <h3>Old Testament</h3>
+        <p>Shared with Judaism, the Old Testament opens with the Torah (Genesis through Deuteronomy) — creation, the patriarchs Abraham, Isaac, and Jacob, the exodus from Egypt under Moses, and the giving of the Law at Sinai. It continues through the historical books (Joshua, Judges, Samuel, Kings) tracing Israel's life in the Promised Land and its kingship under Saul, David, and Solomon; the wisdom and poetic books (Psalms, Proverbs, Job, Ecclesiastes, Song of Songs); and the prophetic books (Isaiah, Jeremiah, Ezekiel, and the twelve "minor" prophets), which call Israel back to covenant faithfulness and, Christians believe, anticipate the coming of Christ.</p>
+
+        <h3>New Testament</h3>
+        <p>The New Testament's 27 books begin with the four Gospels — Matthew, Mark, Luke, and John — each telling the story of Jesus from a distinct vantage point. Acts of the Apostles narrates the birth and spread of the early Church. Twenty-one Letters (Epistles), mostly by Paul, address doctrine and practice in the young churches. The book of Revelation closes the canon with a symbolic vision of the end of history and the final triumph of God.</p>
+
+        <h3>The Apocrypha</h3>
+        <p>Books such as Tobit, Judith, Wisdom, Sirach, and 1–2 Maccabees appear in Catholic and Orthodox Bibles (termed "deuterocanonical," or "second canon") but were set apart by most Protestant reformers as useful but not equal to Scripture, following Jerome's original distinction and Jewish tradition. This remains one of the clearest denominational differences in how the biblical canon itself is drawn.</p>
+
+        <h3>How the Canon Formed</h3>
+        <p>The Old Testament canon largely followed the Hebrew Scriptures as received in Jewish tradition. The New Testament canon developed gradually across the first four centuries, as churches recognized which writings carried genuine apostolic authority and were consistent with the wider "rule of faith"; lists matching today's 27 books appear from the late 4th century onward, formally ratified at regional councils such as Carthage (397).</p>
+
+        <h3>Translation</h3>
+        <p>The Hebrew and Greek texts have been translated into more languages than any other book in history. Major English translations differ in translation philosophy: the King James Version (1611) and English Standard Version favor closer, word-for-word rendering; the New International Version balances accuracy with readability; the New Living Translation and The Message favor thought-for-thought, idiomatic rendering. Catholic Bibles typically use the New American Bible or the Revised Standard Version, Catholic Edition, both including the deuterocanonical books.</p>
+
+        <blockquote class="q">“All Scripture is breathed out by God and profitable for teaching, for reproof, for correction, and for training in righteousness.”<cite>2 Timothy 3:16</cite></blockquote>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="bible" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ GOD & TRINITY ============ -->
+      <section class="entry dropcap" id="god">
+        <div class="entry-tag">Chapter Four</div>
+        <div class="entry-head">
+          <h2>God &amp; the Holy Trinity</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="god" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">At the center of Christian belief stands a claim that resists easy summary: there is one God, eternally existing in three persons — Father, Son, and Holy Spirit — distinct from one another, yet one in essence, undivided in being. This is the doctrine of the Trinity, and nearly every historic Christian tradition — Catholic, Orthodox, and the great majority of Protestant churches — holds it as essential, not incidental, to the faith.</p>
+
+        <h3>One God, Three Persons</h3>
+        <p>The doctrine did not arise from abstract speculation but from the Church's experience of Scripture: the Father is called God, the Son is called God (John 1:1, "the Word was God"), and the Holy Spirit is called God (Acts 5:3–4), yet Scripture insists there is only one God. The Church's answer, refined across the first four centuries and settled at the Councils of Nicaea (325) and Constantinople (381), was that God is one in substance (Greek: ousia) but three in person (hypostasis). The classical formula holds that the Son is "eternally begotten" of the Father, and the Spirit "proceeds" from the Father — a phrase that, with the later Western addition of "and the Son" (the filioque), became a lasting point of division between the Catholic West and Orthodox East.</p>
+
+        <h3>The Attributes of God</h3>
+        <p>Across the tradition, God is described as omnipotent (all-powerful), omniscient (all-knowing), omnipresent (present everywhere), eternal (without beginning or end), immutable (unchanging in nature), and perfectly good, holy, just, and loving. These are held together, not in tension: God's justice and mercy meet most fully, in Christian understanding, at the cross of Christ.</p>
+
+        <h3>Names of God</h3>
+        <p>The Old Testament uses several names for God, each carrying its own weight: Elohim (a general word for God, in a grammatically plural form used of the one true God), YHWH — the personal, covenant name revealed to Moses at the burning bush and traditionally rendered "the LORD" out of reverence, often vocalized "Yahweh" — and Adonai ("Lord"). Christians also address God as Father, following Jesus's own address to God as "Abba," an intimate Aramaic term.</p>
+
+        <h3>Creation and Providence</h3>
+        <p>Christianity holds that God created the universe out of nothing (creatio ex nihilo) and sustains it moment by moment, rather than setting it in motion and withdrawing. Christians differ on how literally to read the Genesis creation account — from young-earth readings holding to a recent, six-day creation, to old-earth and theistic-evolution views that read Genesis as theological rather than scientific in genre — but nearly all traditions affirm that the universe is God's deliberate, good creation and remains under his providential care.</p>
+
+        <div class="divider">✦ ✦ ✦</div>
+        <table class="cmp">
+          <tr><th>Attribute</th><th>Meaning</th></tr>
+          <tr><td>Omnipotence</td><td>God is able to do all that is consistent with his nature; classically understood not to include logical contradictions or acting against his own goodness.</td></tr>
+          <tr><td>Omniscience</td><td>God knows all things — past, present, and future — completely and without error.</td></tr>
+          <tr><td>Omnipresence</td><td>God is fully present everywhere at once, not confined to any location.</td></tr>
+          <tr><td>Immutability</td><td>God's character and nature do not change, though Scripture describes him as responsive to prayer and history.</td></tr>
+          <tr><td>Holiness</td><td>God is set apart in moral perfection, the ground of all created goodness.</td></tr>
+        </table>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="god" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ HOLY SPIRIT ============ -->
+      <section class="entry dropcap" id="holyspirit">
+        <div class="entry-tag">Chapter Five</div>
+        <div class="entry-head">
+          <h2>The Holy Spirit</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="holyspirit" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">The Holy Spirit is, in Christian belief, the third person of the Trinity — fully God, not merely a force or influence — who acts in creation, in Scripture, and in the ongoing life of believers.</p>
+
+        <h3>Identity and Work</h3>
+        <p>The Spirit is present from the very first verses of the Bible, "hovering over the waters" of creation, and is described as inspiring the prophets and, in the New Testament, overshadowing Mary at Jesus's conception, descending on Jesus at his baptism, and empowering the early Church at Pentecost — the event, fifty days after Jesus's resurrection, when the Spirit came upon the apostles in Jerusalem, traditionally marked as the Church's birthday.</p>
+
+        <h3>Pentecost</h3>
+        <p>Acts 2 describes the Spirit's arrival as a sound like a rushing wind and tongues of fire resting on each apostle, followed by their preaching in languages understood by pilgrims from across the Mediterranean world. The event is read as reversing, in miniature, the confusion of languages at Babel (Genesis 11), gathering the nations rather than scattering them.</p>
+
+        <h3>Fruit and Gifts</h3>
+        <p>Paul distinguishes between the "fruit" of the Spirit — the character the Spirit forms in a believer over time: love, joy, peace, patience, kindness, goodness, faithfulness, gentleness, and self-control (Galatians 5:22–23) — and the "gifts" of the Spirit, particular abilities given for service to the community, such as teaching, healing, prophecy, and speaking in tongues (1 Corinthians 12). Traditions differ sharply on the latter: Pentecostal and Charismatic Christians hold that the more dramatic gifts, including tongues and prophecy, continue actively today; many other Protestant and Catholic Christians hold a "cessationist" or more cautious view, while still affirming ongoing gifts such as teaching, service, and mercy.</p>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="holyspirit" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ SALVATION ============ -->
+      <section class="entry dropcap" id="salvation">
+        <div class="entry-tag">Chapter Six</div>
+        <div class="entry-head">
+          <h2>Salvation</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="salvation" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">Salvation is the Christian claim that human beings, estranged from God by sin, are reconciled to him through the death and resurrection of Jesus Christ — not as a reward earned, but as a gift received.</p>
+
+        <h3>Grace, Faith, and Works</h3>
+        <p>All major traditions agree that salvation begins in God's grace — his unearned favor — rather than in human merit. Where they differ is on the relationship between faith and works in receiving and living out that grace. Protestant traditions, following the Reformation principle of sola fide ("faith alone"), teach that a person is justified — declared righteous before God — by faith alone, with good works following as its fruit rather than its cause. The Catholic Church teaches that justification involves both grace and a freely cooperating faith that is inseparable from love and good works, formalized at the Council of Trent. Eastern Orthodoxy frames the entire process less as a legal transaction and more as theosis — a lifelong process of being drawn into communion with God's own life.</p>
+
+        <h3>Repentance and Baptism</h3>
+        <p>Across traditions, salvation is entered through repentance (a turning from sin) and faith in Christ, marked outwardly by baptism. Most traditions see baptism as the ordinary means by which a person is joined to Christ and the Church, though they differ on whether infants should be baptized (as in Catholic, Orthodox, Lutheran, and Anglican practice) or only believers old enough to profess their own faith (as in Baptist and many Evangelical traditions).</p>
+
+        <h3>Heaven, Hell, and Judgment</h3>
+        <p>Christian tradition teaches a final judgment, after which those united to Christ enter eternal life in God's presence (heaven), while those who finally reject him are separated from him (hell). The Catholic Church additionally teaches purgatory, a final purification for those who die in God's friendship but still imperfectly free from sin's effects — a doctrine most Protestant and Orthodox Christians do not accept, generally on the grounds that they do not find it clearly taught in Scripture. Descriptions of the nature of hell itself vary, from traditional teachings of conscious, eternal separation from God to minority views of eventual annihilation or, held by some but not most Christians, universal reconciliation.</p>
+
+        <blockquote class="q">“For by grace you have been saved through faith. And this is not your own doing; it is the gift of God, not a result of works.”<cite>Ephesians 2:8–9</cite></blockquote>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="salvation" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ DENOMINATIONS ============ -->
+      <section class="entry dropcap" id="denominations">
+        <div class="entry-tag">Chapter Seven</div>
+        <div class="entry-head">
+          <h2>Major Denominations</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="denominations" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">Christianity is not one organization but a family of traditions, united by common roots in Scripture and creed, yet distinct in authority, worship, and practice. No table can hold their full richness, but the broad shape of the major branches can be compared side by side.</p>
+
+        <table class="cmp">
+          <tr><th>Tradition</th><th>Roughly</th><th>Authority</th><th>Distinctive</th></tr>
+          <tr><td>Roman Catholic</td><td>~1.36 billion</td><td>Scripture, Sacred Tradition, the Pope and bishops in communion with Rome</td><td>Seven sacraments; the Pope as successor of Peter; veneration of Mary and the saints</td></tr>
+          <tr><td>Eastern Orthodox</td><td>~230 million</td><td>Scripture, Holy Tradition, the seven Ecumenical Councils</td><td>No single earthly head; icons central to worship; strong emphasis on theosis</td></tr>
+          <tr><td>Oriental Orthodox</td><td>~60 million</td><td>Scripture, Tradition, first three Ecumenical Councils</td><td>Coptic, Armenian, Syriac, and Ethiopian churches; distinct Christological formula from Chalcedonian churches</td></tr>
+          <tr><td>Anglican / Episcopal</td><td>~85 million</td><td>Scripture, reason, tradition ("three-legged stool")</td><td>Retains bishops and much liturgical form from Catholicism, alongside Reformation theology</td></tr>
+          <tr><td>Lutheran</td><td>~75 million</td><td>Scripture alone (sola scriptura)</td><td>Justification by faith alone; two sacraments (baptism, communion); Augsburg Confession</td></tr>
+          <tr><td>Reformed / Presbyterian</td><td>~75 million</td><td>Scripture alone</td><td>Governance by elders; strong emphasis on God's sovereignty (Calvinism)</td></tr>
+          <tr><td>Methodist</td><td>~80 million</td><td>Scripture, reason, tradition, experience</td><td>Rooted in John Wesley's teaching on grace and personal holiness</td></tr>
+          <tr><td>Baptist</td><td>~100+ million</td><td>Scripture alone</td><td>Believer's (not infant) baptism by immersion; congregational governance</td></tr>
+          <tr><td>Pentecostal / Charismatic</td><td>~280+ million</td><td>Scripture alone</td><td>Emphasis on the Holy Spirit's active gifts, including tongues and healing</td></tr>
+          <tr><td>Non-denominational Evangelical</td><td>~80+ million</td><td>Scripture alone</td><td>Independent congregations; emphasis on personal conversion and biblical preaching</td></tr>
+        </table>
+        <p style="font-size:0.85rem;color:var(--ink-faint)">Figures are widely cited approximations drawn from global religious demography research and vary by source and year; they are best read as orders of magnitude rather than precise counts.</p>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="denominations" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ SACRAMENTS ============ -->
+      <section class="entry dropcap" id="sacraments">
+        <div class="entry-tag">Chapter Eight</div>
+        <div class="entry-head">
+          <h2>The Sacraments</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="sacraments" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">A sacrament, in classical Christian language, is an outward sign of an inward grace — a physical act through which God is believed to give what the sign represents. Catholic and Orthodox tradition recognize seven; most Protestant traditions recognize two, holding that only these were directly instituted by Christ himself.</p>
+
+        <h3>Baptism</h3>
+        <p>Baptism, with water, marks entry into the Church and union with Christ's death and resurrection. Practice varies between infant baptism, followed later by a rite of confirmation or profession of faith, and believer's baptism administered upon a personal confession of faith.</p>
+
+        <h3>The Eucharist / Communion</h3>
+        <p>Instituted at the Last Supper, this meal of bread and wine recalls Christ's sacrifice. Catholic teaching holds that the bread and wine become, in substance, the body and blood of Christ (transubstantiation) while retaining their outward appearance. Lutheran teaching holds Christ to be truly present "in, with, and under" the elements. Reformed and many Evangelical traditions understand the meal as a spiritually real but symbolic remembrance. Orthodox tradition affirms a real change while declining to define its philosophical mechanism.</p>
+
+        <h3>Confirmation, Marriage, Ordination, Anointing, Confession</h3>
+        <p>In Catholic and Orthodox practice, Confirmation seals the gift of the Spirit given in baptism; Marriage is a covenant sign of Christ's union with the Church; Holy Orders ordains bishops, priests, and deacons; Anointing of the Sick brings God's grace to those who are ill or dying; and Confession (Reconciliation) allows a penitent to confess sin to a priest and receive absolution. Most Protestant traditions honor marriage and ordination as significant, Scripture-grounded practices without classifying them as sacraments in the technical sense, reserving that word for baptism and communion alone.</p>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="sacraments" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ FESTIVALS ============ -->
+      <section class="entry dropcap" id="festivals">
+        <div class="entry-tag">Chapter Nine</div>
+        <div class="entry-head">
+          <h2>Feasts &amp; the Liturgical Calendar</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="festivals" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">Much of Christian life is shaped not by the ordinary calendar but by a liturgical year — a cycle of seasons and feasts that retells the story of salvation every twelve months.</p>
+
+        <div class="timeline">
+          <div class="tl-item"><span class="tl-date">Advent</span><h4>Four weeks before Christmas</h4><p>A season of watchful waiting for Christ's coming, marked in many traditions by an Advent wreath lit one candle at a time.</p></div>
+          <div class="tl-item"><span class="tl-date">Christmas</span><h4>25 December (or 6/7 January, Orthodox)</h4><p>The celebration of Christ's birth; Orthodox churches using the Julian calendar mark it in January.</p></div>
+          <div class="tl-item"><span class="tl-date">Epiphany</span><h4>6 January</h4><p>Commemorates the visit of the Magi, and in Eastern tradition, Christ's baptism.</p></div>
+          <div class="tl-item"><span class="tl-date">Ash Wednesday</span><h4>Beginning of Lent</h4><p>Ashes are placed on the forehead as a sign of mortality and repentance.</p></div>
+          <div class="tl-item"><span class="tl-date">Lent</span><h4>Forty days before Easter</h4><p>A penitential season of fasting and prayer, recalling Christ's forty days in the wilderness.</p></div>
+          <div class="tl-item"><span class="tl-date">Palm Sunday</span><h4>Sunday before Easter</h4><p>Recalls Jesus's triumphal entry into Jerusalem.</p></div>
+          <div class="tl-item"><span class="tl-date">Good Friday</span><h4>Friday before Easter</h4><p>The solemn commemoration of Christ's crucifixion.</p></div>
+          <div class="tl-item"><span class="tl-date">Easter / Pascha</span><h4>The first Sunday after the first full moon after the spring equinox</h4><p>The central feast of Christianity, celebrating Christ's resurrection; Eastern and Western dates often differ due to different calendars.</p></div>
+          <div class="tl-item"><span class="tl-date">Ascension</span><h4>40 days after Easter</h4><p>Marks Christ's ascension into heaven.</p></div>
+          <div class="tl-item"><span class="tl-date">Pentecost</span><h4>50 days after Easter</h4><p>Celebrates the descent of the Holy Spirit on the apostles.</p></div>
+          <div class="tl-item"><span class="tl-date">All Saints' Day</span><h4>1 November</h4><p>Honors all the saints, known and unknown.</p></div>
+        </div>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="festivals" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ SYMBOLS ============ -->
+      <section class="entry dropcap" id="symbols">
+        <div class="entry-tag">Chapter Ten</div>
+        <div class="entry-head">
+          <h2>Christian Symbols</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="symbols" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">Christianity has always spoken in image as well as word — signs that could be recognized quietly, even under persecution, and that still carry their meaning today.</p>
+        <div class="symgrid">
+          <div class="symcard"><div class="glyph">✝</div><h4>The Cross</h4><p>The instrument of Christ's execution, transformed into the central symbol of redemption.</p></div>
+          <div class="symcard"><div class="glyph">🐟</div><h4>The Ichthys</h4><p>A fish symbol; its Greek letters spell an acrostic for "Jesus Christ, Son of God, Savior."</p></div>
+          <div class="symcard"><div class="glyph">🕊</div><h4>The Dove</h4><p>Represents the Holy Spirit, recalling the dove that descended at Jesus's baptism.</p></div>
+          <div class="symcard"><div class="glyph">🐑</div><h4>The Lamb</h4><p>Christ as the "Lamb of God," recalling the Passover lamb and sacrificial imagery.</p></div>
+          <div class="symcard"><div class="glyph">☧</div><h4>Chi-Rho</h4><p>The first two Greek letters of "Christ," used as an emblem since Constantine's era.</p></div>
+          <div class="symcard"><div class="glyph">Α Ω</div><h4>Alpha &amp; Omega</h4><p>The first and last letters of the Greek alphabet, signifying Christ as beginning and end.</p></div>
+          <div class="symcard"><div class="glyph">😇</div><h4>The Halo</h4><p>A circle of light denoting holiness, used in icons and art for Christ and the saints.</p></div>
+          <div class="symcard"><div class="glyph">🕯</div><h4>The Candle</h4><p>Represents Christ as the light of the world, and prayer offered upward.</p></div>
+        </div>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="symbols" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ PRAYER & QUOTES ============ -->
+      <section class="entry dropcap" id="prayer">
+        <div class="entry-tag">Chapter Eleven</div>
+        <div class="entry-head">
+          <h2>Prayer &amp; Enduring Words</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="prayer" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">Across every tradition, prayer is the breath of Christian life — spoken alone at daybreak, sung together at vespers, or whispered without words at all.</p>
+
+        <h3>The Lord's Prayer</h3>
+        <blockquote class="q">“Our Father, who art in heaven, hallowed be thy name. Thy kingdom come, thy will be done, on earth as it is in heaven. Give us this day our daily bread, and forgive us our trespasses, as we forgive those who trespass against us. And lead us not into temptation, but deliver us from evil.”<cite>Matthew 6:9–13</cite></blockquote>
+
+        <h3>Voices Across the Centuries</h3>
+        <blockquote class="q">“You have made us for yourself, O Lord, and our heart is restless until it rests in you.”<cite>Augustine of Hippo, Confessions</cite></blockquote>
+        <blockquote class="q">“Grace is not opposed to nature, it perfects it.”<cite>Thomas Aquinas</cite></blockquote>
+        <blockquote class="q">“I believe in Christianity as I believe that the sun has risen: not only because I see it, but because by it I see everything else.”<cite>C. S. Lewis</cite></blockquote>
+        <blockquote class="q">“The just shall live by faith.”<cite>Martin Luther, echoing Romans 1:17</cite></blockquote>
+        <blockquote class="q">“Faith without works is dead.”<cite>James 2:26</cite></blockquote>
+        <blockquote class="q">“For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.”<cite>John 3:16</cite></blockquote>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="prayer" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ GLOSSARY ============ -->
+      <section class="entry dropcap" id="glossary">
+        <div class="entry-tag">Chapter Twelve</div>
+        <div class="entry-head">
+          <h2>Glossary</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="glossary" title="Bookmark">★</button></div>
+        </div>
+        <p class="opening">A working vocabulary for reading further — a starting set of terms, not an exhaustive dictionary.</p>
+        <dl class="gloss">
+          <dt>Agape</dt><dd>Selfless, unconditional love; the Greek word used in the New Testament for God's love and the love Christians are called to show others.</dd>
+          <dt>Apostle</dt><dd>One "sent out"; specifically, the twelve disciples commissioned by Jesus, and Paul, to found and lead the early Church.</dd>
+          <dt>Atonement</dt><dd>The reconciliation of humanity to God achieved through Christ's death; traditions differ on the precise theological mechanism, from substitutionary to Christus Victor models.</dd>
+          <dt>Canon</dt><dd>The officially recognized collection of books accepted as Scripture.</dd>
+          <dt>Catechism</dt><dd>A structured summary of Christian doctrine used for instruction.</dd>
+          <dt>Creed</dt><dd>A formal statement of belief, such as the Apostles' or Nicene Creed, recited in worship.</dd>
+          <dt>Diocese</dt><dd>A district under the pastoral care of a bishop.</dd>
+          <dt>Eschatology</dt><dd>The study of "last things" — death, judgment, heaven, hell, and Christ's return.</dd>
+          <dt>Gospel</dt><dd>Literally "good news"; both the message of salvation in Christ and the four New Testament books recounting his life.</dd>
+          <dt>Grace</dt><dd>God's unearned favor and help toward humanity.</dd>
+          <dt>Heresy</dt><dd>A teaching judged by the wider Church to depart seriously from orthodox doctrine.</dd>
+          <dt>Icon</dt><dd>A sacred image, especially in Orthodox tradition, understood as a window onto holiness rather than an object of worship itself.</dd>
+          <dt>Incarnation</dt><dd>God the Son taking on human nature in Jesus Christ.</dd>
+          <dt>Liturgy</dt><dd>The structured public worship of the Church.</dd>
+          <dt>Messiah</dt><dd>Hebrew for "anointed one"; rendered in Greek as "Christ."</dd>
+          <dt>Orthodoxy</dt><dd>"Right belief"; teaching consistent with the historic, creedal consensus of the Church.</dd>
+          <dt>Parable</dt><dd>A short story used by Jesus to illustrate a spiritual truth through everyday imagery.</dd>
+          <dt>Providence</dt><dd>God's ongoing care and governance over creation and history.</dd>
+          <dt>Redemption</dt><dd>The "buying back" of humanity from sin through Christ.</dd>
+          <dt>Sanctification</dt><dd>The lifelong process of growing in holiness after conversion.</dd>
+          <dt>Theotokos</dt><dd>"God-bearer," a title for Mary affirmed at the Council of Ephesus (431), emphasizing the full divinity of the child she bore.</dd>
+          <dt>Transubstantiation</dt><dd>The Catholic teaching that the substance of the Eucharistic bread and wine becomes Christ's body and blood.</dd>
+          <dt>Trinity</dt><dd>The one God existing eternally as Father, Son, and Holy Spirit.</dd>
+        </dl>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="glossary" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+      <!-- ============ FAQ ============ -->
+      <section class="entry dropcap" id="faq">
+        <div class="entry-tag">Chapter Thirteen</div>
+        <div class="entry-head">
+          <h2>Questions Often Asked</h2>
+          <div class="entry-actions"><button class="iconbtn bookmarkbtn" data-id="faq" title="Bookmark">★</button></div>
+        </div>
+
+        <details class="faq"><summary>What is the single core belief of Christianity?</summary><p>That Jesus Christ, the Son of God, died for humanity's sins and rose bodily from the dead, opening the way to reconciliation with God — a claim Paul calls "of first importance" in 1 Corinthians 15.</p></details>
+        <details class="faq"><summary>Do all Christians believe the same things?</summary><p>Nearly all historic traditions share the core creeds — the Trinity, Christ's divinity and humanity, salvation through him — while differing on church authority, the sacraments, and secondary doctrine, as this encyclopedia notes throughout.</p></details>
+        <details class="faq"><summary>Why are there so many denominations?</summary><p>Divisions arose across history from theological disagreement (East–West Schism, Reformation), differing views of church authority, cultural and linguistic separation, and, at times, politics — though most traditions retain a shared core of belief.</p></details>
+        <details class="faq"><summary>What is the difference between Catholic and Protestant?</summary><p>Broadly, Catholics hold that Scripture is interpreted alongside Sacred Tradition under the teaching authority of the Pope and bishops, and recognize seven sacraments; most Protestants hold Scripture alone as the final authority and generally recognize two sacraments, baptism and communion.</p></details>
+        <details class="faq"><summary>What is the Trinity, simply put?</summary><p>One God who exists eternally as three distinct persons — Father, Son, and Holy Spirit — fully God, yet not three gods. It is described in Scripture rather than fully explained by analogy, and the Church has always resisted analogies (water/ice/steam, for instance) that oversimplify it.</p></details>
+        <details class="faq"><summary>Why did Jesus have to die?</summary><p>Christian tradition, developed especially by theologians like Anselm, teaches that human sin created a debt or estrangement from God that required a perfect, willing sacrifice to satisfy justice and restore relationship — offered by Christ, both fully God and fully human, on humanity's behalf.</p></details>
+        <details class="faq"><summary>Is the Bible meant to be read literally?</summary><p>Christians generally distinguish between genres within Scripture — historical narrative, poetry, law, prophecy, apocalyptic vision — and read each according to its own literary character, rather than applying one flat rule of literalism to the whole text; traditions vary in how far this interpretive latitude extends.</p></details>
+        <details class="faq"><summary>What happens after death, according to Christianity?</summary><p>Traditions broadly teach an intermediate state followed by bodily resurrection and final judgment, leading to eternal life with God (heaven) or eternal separation from him (hell); Catholic teaching adds purgatory as a final purification.</p></details>
+        <details class="faq"><summary>Do Christians worship Mary?</summary><p>No historic Christian tradition worships Mary; Catholic and Orthodox Christians venerate and honor her as the mother of Christ and ask for her prayers, a practice most Protestants do not follow, generally reserving prayer and worship for God alone.</p></details>
+        <details class="faq"><summary>What is the difference between a saint and an ordinary Christian?</summary><p>In the New Testament, "saint" describes every believer set apart for God. In later Catholic and Orthodox usage, it also refers formally to individuals recognized by the Church as having lived in exceptional holiness, now believed to be in God's presence.</p></details>
+
+        <div class="notesbox">
+          <label>Your notes on this chapter</label>
+          <textarea data-id="faq" placeholder="Write a private reflection…"></textarea>
+          <span class="savedflag">Saved</span>
+        </div>
+      </section>
+
+    </div>
+
+    <footer>
+      <div class="verse-final">“The grace of the Lord Jesus Christ be with your spirit.”</div>
+      <p>Lumen — a devotional encyclopedia. Written for quiet reading, one chapter at a time.</p>
+    </footer>
+
+  </main>
+</div>
+
+<div class="floaters">
+  <button id="fullscreenbtn" title="Full screen">⛶</button>
+  <button id="totop" title="Back to top">↑</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $  = (s,c)=> (c||document).querySelector(s);
+  const $$ = (s,c)=> Array.from((c||document).querySelectorAll(s));
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  const themebtn = $('#themebtn');
+  function applyTheme(t){
+    root.setAttribute('data-theme', t);
+    themebtn.textContent = t === 'dawn' ? '☀ Dawn' : '☾ Dusk';
+    localStorage.setItem('lumen_theme', t);
+  }
+  applyTheme(localStorage.getItem('lumen_theme') || 'dusk');
+  themebtn.addEventListener('click', ()=> applyTheme(root.getAttribute('data-theme')==='dusk' ? 'dawn' : 'dusk'));
+
+  /* ---------- font scale ---------- */
+  let scale = parseFloat(localStorage.getItem('lumen_scale')) || 1;
+  function applyScale(){ root.style.setProperty('--scale', scale.toFixed(2)); localStorage.setItem('lumen_scale', scale); }
+  applyScale();
+  $('#fontplus').addEventListener('click', ()=>{ scale = Math.min(1.4, scale+0.08); applyScale(); });
+  $('#fontminus').addEventListener('click', ()=>{ scale = Math.max(0.82, scale-0.08); applyScale(); });
+
+  /* ---------- bookmarks ---------- */
+  let bookmarks = JSON.parse(localStorage.getItem('lumen_bookmarks') || '[]');
+  function saveBookmarks(){ localStorage.setItem('lumen_bookmarks', JSON.stringify(bookmarks)); }
+  function refreshBookmarkUI(){
+    $$('.toc a').forEach(a=>{
+      const id = a.dataset.id;
+      a.classList.toggle('bookmarked', bookmarks.includes(id));
+    });
+    $$('.bookmarkbtn').forEach(b=>{
+      b.classList.toggle('on', bookmarks.includes(b.dataset.id));
+    });
+  }
+  function toggleBookmark(id){
+    const i = bookmarks.indexOf(id);
+    if(i>-1) bookmarks.splice(i,1); else bookmarks.push(id);
+    saveBookmarks(); refreshBookmarkUI();
+  }
+  $$('.bookmarkbtn').forEach(b=> b.addEventListener('click', ()=> toggleBookmark(b.dataset.id)));
+  refreshBookmarkUI();
+
+  let showingOnlyBookmarks = false;
+  $('#showbookmarks').addEventListener('click', function(){
+    showingOnlyBookmarks = !showingOnlyBookmarks;
+    this.classList.toggle('active', showingOnlyBookmarks);
+    $$('section.entry').forEach(sec=>{
+      if(!showingOnlyBookmarks){ sec.style.display=''; return; }
+      sec.style.display = bookmarks.includes(sec.id) ? '' : 'none';
+    });
+  });
+
+  /* ---------- notes ---------- */
+  let notes = JSON.parse(localStorage.getItem('lumen_notes') || '{}');
+  $$('.notesbox textarea').forEach(ta=>{
+    const id = ta.dataset.id;
+    if(notes[id]) ta.value = notes[id];
+    let t;
+    ta.addEventListener('input', ()=>{
+      clearTimeout(t);
+      t = setTimeout(()=>{
+        notes[id] = ta.value;
+        localStorage.setItem('lumen_notes', JSON.stringify(notes));
+        const flag = ta.parentElement.querySelector('.savedflag');
+        flag.classList.add('show');
+        setTimeout(()=> flag.classList.remove('show'), 1400);
+      }, 500);
+    });
+  });
+
+  /* ---------- scroll progress + active nav ---------- */
+  const bar = $('#progressbar');
+  const sections = $$('section.entry');
+  const navlinks = $$('.toc a');
+  function onScroll(){
+    const h = document.documentElement;
+    const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+    bar.style.width = scrolled + '%';
+
+    let current = 'home';
+    for(const sec of sections){
+      const r = sec.getBoundingClientRect();
+      if(r.top < 140) current = sec.id;
+    }
+    if(window.scrollY < 200) current = 'home';
+    navlinks.forEach(a=> a.classList.toggle('active', a.dataset.id === current));
+
+    const floaters = window.scrollY > 500;
+    $('#totop').classList.toggle('show', floaters);
+  }
+  document.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  $('#totop').addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+  $('#fullscreenbtn').classList.add('show');
+  $('#fullscreenbtn').addEventListener('click', ()=>{
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    else document.exitFullscreen();
+  });
+
+  /* ---------- mobile sidebar ---------- */
+  const sidebar = $('#sidebar');
+  $('#menubtn').addEventListener('click', ()=> sidebar.classList.toggle('open'));
+  navlinks.forEach(a=> a.addEventListener('click', ()=> sidebar.classList.remove('open')));
+
+  /* ---------- search index ---------- */
+  const index = sections.map(sec=>{
+    const title = sec.querySelector('h2') ? sec.querySelector('h2').textContent : sec.id;
+    const text = sec.textContent.replace(/\s+/g,' ').trim();
+    return {id: sec.id, title, text};
+  });
+  const searchInput = $('#search');
+  const resultsBox = $('#searchresults');
+  searchInput.addEventListener('input', function(){
+    const q = this.value.trim().toLowerCase();
+    if(q.length < 2){ resultsBox.style.display='none'; resultsBox.innerHTML=''; return; }
+    const hits = [];
+    index.forEach(entry=>{
+      const pos = entry.text.toLowerCase().indexOf(q);
+      if(pos > -1){
+        const start = Math.max(0, pos-40);
+        const snip = (start>0?'…':'') + entry.text.substring(start, pos+70) + '…';
+        hits.push({id:entry.id, title:entry.title, snip});
+      }
+    });
+    if(hits.length===0){
+      resultsBox.innerHTML = '<div style="color:var(--ink-faint)">No matches found.</div>';
+    } else {
+      resultsBox.innerHTML = hits.map(h=>
+        '<div data-target="'+h.id+'"><strong>'+h.title+'</strong><span class="snip">'+h.snip+'</span></div>'
+      ).join('');
+    }
+    resultsBox.style.display = 'block';
+  });
+  resultsBox.addEventListener('click', function(e){
+    const row = e.target.closest('[data-target]');
+    if(!row) return;
+    document.getElementById(row.dataset.target).scrollIntoView({behavior:'smooth'});
+    resultsBox.style.display='none';
+    searchInput.value='';
+    sidebar.classList.remove('open');
+  });
+
+  /* ---------- keyboard shortcuts ---------- */
+  document.addEventListener('keydown', function(e){
+    if(e.key === '/' && document.activeElement !== searchInput){
+      e.preventDefault(); searchInput.focus();
+    }
+    if(e.key === 'Escape'){ searchInput.blur(); resultsBox.style.display='none'; }
+  });
+
+})();
+</script>
+</body>
+</html>
